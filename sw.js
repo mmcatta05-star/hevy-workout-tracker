@@ -3,12 +3,13 @@
  * Gestisce caching offline per installazione PWA
  */
 
-const CACHE_NAME = "hevy-gym-v1";
+const CACHE_NAME = "hevy-gym-v2";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./css/style.css",
   "./js/data.js",
+  "./js/anatomy.js",
   "./js/store.js",
   "./js/timer.js",
   "./js/charts.js",

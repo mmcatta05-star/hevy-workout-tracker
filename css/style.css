@@ -988,3 +988,157 @@ input, textarea {
 .mb-4 { margin-bottom: 16px; }
 .flex-1 { flex: 1; }
 .gap-2 { gap: 8px; }
+
+/* ==========================================================================
+   AGGIORNAMENTO: ILLUSTRAZIONI ANATOMICHE & BADGE PR (RECORD PERSONALI)
+   ========================================================================== */
+
+/* Layout Intestazione Esercizio con Miniatura Anatomica */
+.exercise-main-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.anatomy-thumb-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.anatomy-thumb-btn:active {
+  transform: scale(0.92);
+}
+
+.anatomy-svg {
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.exercise-header-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.exercise-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.exercise-category-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.12);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  margin-right: 6px;
+}
+
+/* Badge Record Personali (PR) */
+.pr-badges-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0 2px 0;
+}
+
+.pr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  animation: prPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.12s ease, filter 0.15s ease;
+}
+
+.pr-badge:active {
+  transform: scale(0.94);
+}
+
+@keyframes prPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Badge Carico Massimo (💪) */
+.pr-badge-weight {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+/* Badge Miglior Serie / Volume Singolo (🏅) */
+.pr-badge-volume {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.pr-badge-text {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Chip filtro per catalogo esercizi */
+.filter-chips-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0 10px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filter-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-chip.active {
+  background-color: var(--accent-blue);
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+.filter-chip:active {
+  transform: scale(0.96);
+}
+
+.picker-item-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}

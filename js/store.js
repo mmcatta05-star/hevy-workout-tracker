@@ -126,12 +126,18 @@ const Store = {
     }
   },
 
+  isExerciseNameMatch(nameA, nameB) {
+    if (!nameA || !nameB) return false;
+    const a = nameA.toLowerCase().trim();
+    const b = nameB.toLowerCase().trim();
+    return a === b || a.includes(b) || b.includes(a);
+  },
+
   getLastSessionForExercise(exerciseName) {
     const history = this.getHistory();
-    const norm = exerciseName.trim().toLowerCase();
     for (const session of history) {
       if (!session.exercises) continue;
-      const found = session.exercises.find(e => e.name && e.name.trim().toLowerCase() === norm);
+      const found = session.exercises.find(e => this.isExerciseNameMatch(e.name, exerciseName));
       if (found && found.sets && found.sets.some(s => s.completed)) {
         return {
           date: session.date,
@@ -141,6 +147,84 @@ const Store = {
       }
     }
     return null;
+  },
+
+  // --- RECORD PERSONALI (PR) TRACKING ---
+  /**
+   * Calcola i massimi storici precedenti per un dato esercizio nello storico completato
+   * (esclude una sessione specifica se specificato sessionIdExclude, es. quella corrente)
+   */
+  getHistoricalRecordsForExercise(exerciseName, sessionIdExclude = null) {
+    const history = this.getHistory();
+
+    let maxWeight = 0;
+    let maxSetVolume = 0;
+    let hasCompletedSets = false;
+
+    for (const session of history) {
+      if (sessionIdExclude && session.id === sessionIdExclude) continue;
+      if (!session.exercises) continue;
+
+      const found = session.exercises.find(e => this.isExerciseNameMatch(e.name, exerciseName));
+      if (found && found.sets) {
+        for (const s of found.sets) {
+          if (s.completed && Number(s.weight) > 0) {
+            hasCompletedSets = true;
+            const w = Number(s.weight);
+            const reps = Number(s.reps) || 0;
+            const vol = w * reps;
+
+            if (w > maxWeight) maxWeight = w;
+            if (vol > maxSetVolume) maxSetVolume = vol;
+          }
+        }
+      }
+    }
+
+    return {
+      allTimeMaxWeight: maxWeight,
+      allTimeMaxSetVolume: maxSetVolume,
+      hasHistory: hasCompletedSets
+    };
+  },
+
+  /**
+   * Controlla in tempo reale se le serie attuali stabiliscono un nuovo PR
+   * (Carico Massimo 💪 o Miglior Serie / Volume Singolo 🏅)
+   */
+  checkExercisePRs(exerciseName, sets = [], sessionIdExclude = null) {
+    const historical = this.getHistoricalRecordsForExercise(exerciseName, sessionIdExclude);
+    
+    let isMaxWeightPR = false;
+    let currentMaxWeight = 0;
+    let isMaxVolumePR = false;
+    let currentMaxVolume = 0;
+
+    for (const s of sets) {
+      const w = Number(s.weight) || 0;
+      const reps = Number(s.reps) || 0;
+      const vol = w * reps;
+
+      if (w > currentMaxWeight) currentMaxWeight = w;
+      if (vol > currentMaxVolume) currentMaxVolume = vol;
+
+      if (historical.allTimeMaxWeight > 0 && w > historical.allTimeMaxWeight) {
+        isMaxWeightPR = true;
+      }
+      if (historical.allTimeMaxSetVolume > 0 && vol > historical.allTimeMaxSetVolume) {
+        isMaxVolumePR = true;
+      }
+    }
+
+    return {
+      isMaxWeightPR,
+      currentMaxWeight,
+      prevMaxWeight: historical.allTimeMaxWeight,
+      isMaxVolumePR,
+      currentMaxVolume,
+      prevMaxVolume: historical.allTimeMaxSetVolume,
+      hasHistory: historical.hasHistory
+    };
   },
 
   // --- SOVRACCARICO PROGRESSIVO (PROGRESSIVE OVERLOAD) ---

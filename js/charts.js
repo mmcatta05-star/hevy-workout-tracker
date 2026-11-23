@@ -118,7 +118,12 @@ const ChartsManager = {
 
     chronological.forEach(session => {
       if (!session.exercises) return;
-      const ex = session.exercises.find(e => e.name && e.name.toLowerCase() === exerciseName.toLowerCase());
+      const normTarget = exerciseName.toLowerCase().trim();
+      const ex = session.exercises.find(e => {
+        if (!e.name) return false;
+        const n = e.name.toLowerCase().trim();
+        return n === normTarget || n.includes(normTarget) || normTarget.includes(n);
+      });
       if (ex && ex.sets) {
         const validSets = ex.sets.filter(s => s.completed && Number(s.weight) > 0);
         if (validSets.length > 0) {

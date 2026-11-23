@@ -1,6 +1,7 @@
 /**
  * Hevy Gym Tracker - Applicazione Principale
- * Gestisce navigazione, esecuzione allenamento, routine editor, modali e interazioni touch
+ * Gestisce navigazione, esecuzione allenamento, routine editor,
+ * catalogo 90+ esercizi, illustrazioni anatomiche SVG e badge PR in tempo reale.
  */
 
 const App = {
@@ -8,7 +9,9 @@ const App = {
   activeWorkout: null,
   workoutTimerInterval: null,
   activeExercisePickerContext: null, // "editor" o "active_workout"
+  pickerMuscleFilter: "Tutti",
   finishSummaryData: null,
+  currentEditorExercises: [],
 
   init() {
     Store.init();
@@ -17,6 +20,7 @@ const App = {
     this.bindNavigation();
     this.bindModals();
     this.bindSettings();
+    this.bindExercisePickerFilters();
     this.renderRoutines();
 
     // Controlla se c'è un allenamento già attivo salvato in LocalStorage
@@ -85,7 +89,6 @@ const App = {
       });
     });
 
-    // Pulsanti nella schermata vuota dell'allenamento attivo
     const btnQuick = document.getElementById("btn-start-quick-workout");
     if (btnQuick) {
       btnQuick.addEventListener("click", () => this.startQuickWorkout());
@@ -100,7 +103,6 @@ const App = {
   switchView(viewId) {
     this.currentView = viewId;
 
-    // Aggiorna classi bottoni navigazione
     document.querySelectorAll(".nav-item").forEach(btn => {
       if (btn.getAttribute("data-view") === viewId) {
         btn.classList.add("active");
@@ -109,7 +111,6 @@ const App = {
       }
     });
 
-    // Mostra vista corrente
     document.querySelectorAll(".view-section").forEach(sec => {
       if (sec.id === viewId) {
         sec.classList.add("active");
@@ -128,7 +129,6 @@ const App = {
       this.renderHistoryList();
     }
 
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: "smooth" });
   },
 
@@ -160,9 +160,15 @@ const App = {
       const previewExercises = (r.exercises || []).slice(0, 3).map(ex => {
         const setsCount = ex.sets ? ex.sets.length : 0;
         const firstSet = ex.sets && ex.sets[0] ? `${ex.sets[0].weight}kg × ${ex.sets[0].reps}` : "";
+        const mGroup = detectMuscleGroup(ex.name);
         return `
           <div class="preview-item">
-            <span>• ${this.escapeHtml(ex.name)}</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="anatomy-thumb-btn" style="cursor: pointer;" onclick="event.stopPropagation(); Anatomy.openModal('${this.escapeHtml(ex.name)}', '${mGroup}')" title="Visualizza anatomia">
+                ${Anatomy.getSvg(mGroup, 26, 32, ex.name)}
+              </span>
+              <span>${this.escapeHtml(ex.name)}</span>
+            </div>
             <span class="preview-sets">${setsCount} serie ${firstSet ? '(' + firstSet + ')' : ''}</span>
           </div>
         `;
@@ -209,7 +215,6 @@ const App = {
     const idEl = document.getElementById("edit-routine-id");
     const nameEl = document.getElementById("edit-routine-name");
     const descEl = document.getElementById("edit-routine-desc");
-    const exercisesContainer = document.getElementById("editor-exercises-list");
 
     if (routineId) {
       const routine = Store.getRoutineById(routineId);
@@ -241,6 +246,7 @@ const App = {
     }
 
     container.innerHTML = this.currentEditorExercises.map((ex, exIdx) => {
+      const mGroup = detectMuscleGroup(ex.name);
       const setsHtml = (ex.sets || []).map((s, sIdx) => `
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
           <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); width: 20px;">S${sIdx + 1}</span>
@@ -255,7 +261,15 @@ const App = {
       return `
         <div class="card" style="margin-bottom: 12px; padding: 12px; background-color: var(--bg-card);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="font-size: 0.95rem;">${this.escapeHtml(ex.name)}</strong>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" class="anatomy-thumb-btn" onclick="Anatomy.openModal('${this.escapeHtml(ex.name)}', '${mGroup}')" title="Visualizza muscoli bersaglio">
+                ${Anatomy.getSvg(mGroup, 32, 38, ex.name)}
+              </button>
+              <div>
+                <strong style="font-size: 0.95rem;">${this.escapeHtml(ex.name)}</strong>
+                <div style="font-size: 0.72rem; color: var(--accent-blue); font-weight: 600;">${mGroup}</div>
+              </div>
+            </div>
             <button type="button" class="icon-btn" style="color: var(--accent-red);" onclick="App.removeEditorExercise(${exIdx})">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
@@ -379,7 +393,6 @@ const App = {
       }
     }
 
-    // Costruisce la sessione attiva
     this.activeWorkout = {
       id: "workout_" + Date.now(),
       routineId: routine.id,
@@ -449,6 +462,41 @@ const App = {
     if (timerEl) timerEl.textContent = formatted;
   },
 
+  /**
+   * Genera i badge PR (💪 Carico Max e 🏅 Miglior Serie) per un esercizio
+   */
+  generatePRBadgesHtml(exerciseName, sets = [], exIdx = null) {
+    const prs = Store.checkExercisePRs(exerciseName, sets);
+    let badges = [];
+
+    if (prs.isMaxWeightPR) {
+      badges.push(`
+        <span class="pr-badge pr-badge-weight" onclick="App.showPRToast('weight', '${this.escapeHtml(exerciseName)}', ${prs.currentMaxWeight}, ${prs.prevMaxWeight})" title="Record Carico Max: ${prs.currentMaxWeight} kg (Precedente: ${prs.prevMaxWeight} kg)">
+          💪 <span class="pr-badge-text">PR ${prs.currentMaxWeight}kg</span>
+        </span>
+      `);
+    }
+
+    if (prs.isMaxVolumePR) {
+      badges.push(`
+        <span class="pr-badge pr-badge-volume" onclick="App.showPRToast('volume', '${this.escapeHtml(exerciseName)}', ${prs.currentMaxVolume}, ${prs.prevMaxVolume})" title="Record Miglior Serie (kg × reps): ${prs.currentMaxVolume} kg (Precedente: ${prs.prevMaxVolume} kg)">
+          🏅 <span class="pr-badge-text">Record ${prs.currentMaxVolume}kg</span>
+        </span>
+      `);
+    }
+
+    const idAttr = exIdx !== null ? `id="pr-badges-wrap-${exIdx}"` : "";
+    return `<div class="pr-badges-wrap" ${idAttr}>${badges.join("")}</div>`;
+  },
+
+  showPRToast(type, exerciseName, current, prev) {
+    if (type === "weight") {
+      this.showToast(`💪 RECORD CARICO MAX su ${exerciseName}: ${current} kg! (Superato il precedente record di ${prev} kg)`);
+    } else {
+      this.showToast(`🏅 RECORD MIGLIOR SERIE (kg × reps) su ${exerciseName}: ${current} kg! (Superato il precedente record di ${prev} kg)`);
+    }
+  },
+
   renderActiveWorkout() {
     const emptyState = document.getElementById("active-empty-state");
     const container = document.getElementById("active-workout-container");
@@ -467,7 +515,6 @@ const App = {
 
     if (nameEl) nameEl.textContent = this.activeWorkout.routineName || "Allenamento";
 
-    // Calcolo statistiche in tempo reale
     let totalCompletedSets = 0;
     let totalAllSets = 0;
     let totalVolume = 0;
@@ -486,7 +533,6 @@ const App = {
       statsEl.textContent = `${totalCompletedSets}/${totalAllSets} serie • ${totalVolume.toLocaleString("it-IT")} kg`;
     }
 
-    // Render Esercizi
     if (!listEl) return;
     if (this.activeWorkout.exercises.length === 0) {
       listEl.innerHTML = `
@@ -499,17 +545,16 @@ const App = {
     }
 
     listEl.innerHTML = this.activeWorkout.exercises.map((ex, exIdx) => {
-      // Dati di riferimento dell'ultima sessione completata
       const lastSessionInfo = Store.getLastSessionForExercise(ex.name);
       const lastSetsText = (lastSessionInfo && lastSessionInfo.exercise && lastSessionInfo.exercise.sets)
         ? lastSessionInfo.exercise.sets.filter(s => s.completed)
         : [];
 
-      // Suggerimento Sovraccarico Progressivo
       const suggestion = Store.getProgressiveOverloadSuggestion(ex.name, ex.sets);
+      const mGroup = detectMuscleGroup(ex.name);
+      const prBadgesHtml = this.generatePRBadgesHtml(ex.name, ex.sets, exIdx);
 
       const setsRows = (ex.sets || []).map((s, sIdx) => {
-        // Valore ultima volta per questa specifica serie
         const prevSet = lastSetsText[sIdx];
         const prevLabel = prevSet ? `${prevSet.weight}kg × ${prevSet.reps}` : "-";
 
@@ -544,16 +589,33 @@ const App = {
 
       return `
         <div class="exercise-box" data-exercise-index="${exIdx}">
+          
+          <!-- Intestazione con Miniatura Anatomica SVG e Badge PR -->
           <div class="exercise-header">
-            <div>
-              <h3 class="exercise-title">${this.escapeHtml(ex.name)}</h3>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-                Recupero: <strong style="color: var(--accent-blue); cursor: pointer;" onclick="App.editExerciseRest(${exIdx})">${ex.restSeconds || 90}s</strong>
+            <div class="exercise-main-header">
+              <button type="button" class="anatomy-thumb-btn" onclick="Anatomy.openModal('${this.escapeHtml(ex.name)}', '${mGroup}')" title="Tocca per ingrandire l'illustrazione anatomica">
+                ${Anatomy.getSvg(mGroup, 38, 46, ex.name)}
+              </button>
+              
+              <div class="exercise-header-details">
+                <div class="exercise-title-line">
+                  <h3 class="exercise-title">${this.escapeHtml(ex.name)}</h3>
+                  <button class="icon-btn" style="color: var(--text-muted); width: 32px; height: 32px;" onclick="App.removeExerciseFromActive(${exIdx})" title="Rimuovi Esercizio">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+                  <span class="exercise-category-pill">${mGroup}</span>
+                  <span style="font-size: 0.75rem; color: var(--text-muted);">
+                    Recupero: <strong style="color: var(--accent-blue); cursor: pointer;" onclick="App.editExerciseRest(${exIdx})">${ex.restSeconds || 90}s</strong>
+                  </span>
+                </div>
+
+                <!-- Contenitore Badge PR in Tempo Reale -->
+                <div id="pr-slot-${exIdx}">${prBadgesHtml}</div>
               </div>
             </div>
-            <button class="icon-btn" style="color: var(--text-muted);" onclick="App.removeExerciseFromActive(${exIdx})" title="Rimuovi Esercizio">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
           </div>
 
           <input type="text" class="exercise-notes-input" 
@@ -590,11 +652,35 @@ const App = {
 
   handleSetInputChange(exIdx, sIdx, field, val) {
     if (!this.activeWorkout || !this.activeWorkout.exercises[exIdx]) return;
-    const set = this.activeWorkout.exercises[exIdx].sets[sIdx];
+    const ex = this.activeWorkout.exercises[exIdx];
+    const set = ex.sets[sIdx];
     if (set) {
       set[field] = Number(val) || 0;
       Store.saveActiveWorkout(this.activeWorkout);
       this.updateActiveHeaderStats();
+      this.updateExercisePRsRealtime(exIdx);
+    }
+  },
+
+  /**
+   * Aggiorna in tempo reale i badge PR 💪 e 🏅 senza rigenerare l'intero DOM dell'esercizio
+   */
+  updateExercisePRsRealtime(exIdx) {
+    if (!this.activeWorkout || !this.activeWorkout.exercises[exIdx]) return;
+    const ex = this.activeWorkout.exercises[exIdx];
+    const slotEl = document.getElementById(`pr-slot-${exIdx}`);
+    if (slotEl) {
+      const prevBadgesCount = slotEl.querySelectorAll(".pr-badge").length;
+      slotEl.innerHTML = this.generatePRBadgesHtml(ex.name, ex.sets, exIdx);
+      const newBadgesCount = slotEl.querySelectorAll(".pr-badge").length;
+      
+      // Se è comparso un nuovo badge PR per la prima volta
+      if (newBadgesCount > prevBadgesCount) {
+        if ("vibrate" in navigator) {
+          navigator.vibrate([40, 60, 80]);
+        }
+        this.showToast(`🔥 Nuovo Record Personale su ${ex.name}!`);
+      }
     }
   },
 
@@ -618,13 +704,6 @@ const App = {
     }
   },
 
-  /**
-   * TRIGGER AUTOMATICO TIMER DI RECUPERO
-   * Quando la serie viene spuntata come completata:
-   * 1. Segna completata
-   * 2. Fa partire il timer non bloccante con audio/vibrazione
-   * 3. Vibrazione aptica immediata
-   */
   toggleSetCompletion(exIdx, sIdx) {
     if (!this.activeWorkout || !this.activeWorkout.exercises[exIdx]) return;
     const ex = this.activeWorkout.exercises[exIdx];
@@ -634,19 +713,16 @@ const App = {
     set.completed = !set.completed;
     Store.saveActiveWorkout(this.activeWorkout);
 
-    // Haptic touch
     if ("vibrate" in navigator) {
       navigator.vibrate(20);
     }
 
-    // Se appena completato, avvia automaticamente il timer di recupero
     if (set.completed) {
       const restSec = ex.restSeconds || 90;
       RestTimer.start(restSec, ex.name);
       this.showToast(`Serie completata! Recupero: ${restSec}s`);
     }
 
-    // Aggiorna classe riga e statistiche senza rifare intero DOM per preservare focus
     const rowEl = document.getElementById(`row-${exIdx}-${sIdx}`);
     if (rowEl) {
       if (set.completed) {
@@ -656,6 +732,7 @@ const App = {
       }
     }
     this.updateActiveHeaderStats();
+    this.updateExercisePRsRealtime(exIdx);
   },
 
   updateActiveHeaderStats() {
@@ -740,7 +817,6 @@ const App = {
   finishActiveWorkout() {
     if (!this.activeWorkout) return;
 
-    // Controlla se almeno una serie è completata
     let completedSetsCount = 0;
     let totalVolume = 0;
     const exercisesData = [];
@@ -773,20 +849,15 @@ const App = {
 
     const durationMin = Math.max(1, Math.round((Date.now() - this.activeWorkout.startTime) / 60000));
 
-    // Controlla PRs per ogni esercizio
+    // Raccoglie tutti i record personali battuti
     const newPRs = [];
     exercisesData.forEach(ex => {
-      const validSets = ex.sets.filter(s => s.completed && s.weight > 0);
-      if (validSets.length > 0) {
-        const sessionMax = Math.max(...validSets.map(s => s.weight));
-        // Controlla storico pregresso
-        const last = Store.getLastSessionForExercise(ex.name);
-        if (last && last.exercise && last.exercise.sets) {
-          const oldMax = Math.max(...last.exercise.sets.filter(s => s.completed).map(s => s.weight));
-          if (sessionMax > oldMax) {
-            newPRs.push(`${ex.name}: Nuovo record ${sessionMax} kg (+${(sessionMax - oldMax).toFixed(1)} kg)!`);
-          }
-        }
+      const prs = Store.checkExercisePRs(ex.name, ex.sets);
+      if (prs.isMaxWeightPR) {
+        newPRs.push(`💪 ${ex.name}: Nuovo record di carico ${prs.currentMaxWeight} kg (prec: ${prs.prevMaxWeight} kg)!`);
+      }
+      if (prs.isMaxVolumePR) {
+        newPRs.push(`🏅 ${ex.name}: Nuovo record serie ${prs.currentMaxVolume} kg (prec: ${prs.prevMaxVolume} kg)!`);
       }
     });
 
@@ -802,7 +873,6 @@ const App = {
 
     this.finishSummaryData = finishedSession;
 
-    // Popola modal riepilogo celebration
     const nameEl = document.getElementById("summary-workout-name");
     const durEl = document.getElementById("summary-duration");
     const volEl = document.getElementById("summary-volume");
@@ -817,8 +887,8 @@ const App = {
     if (prsEl) {
       if (newPRs.length > 0) {
         prsEl.innerHTML = newPRs.map(pr => `
-          <div class="badge-progression" style="display: block; margin-bottom: 6px; padding: 6px 12px; font-size: 0.85rem;">
-            🏆 ${this.escapeHtml(pr)}
+          <div class="badge-progression" style="display: block; margin-bottom: 6px; padding: 8px 12px; font-size: 0.85rem; text-align: left;">
+            ${this.escapeHtml(pr)}
           </div>
         `).join("");
       } else {
@@ -826,7 +896,6 @@ const App = {
       }
     }
 
-    // Apri modal celebration
     const modal = document.getElementById("modal-workout-summary");
     if (modal) modal.classList.add("open");
   },
@@ -837,10 +906,8 @@ const App = {
     const chkUpdate = document.getElementById("chk-update-routine-loads");
     const shouldUpdate = chkUpdate ? chkUpdate.checked : true;
 
-    // Salva sessione nello storico e aggiorna la routine se richiesto
     Store.saveWorkoutSession(this.finishSummaryData, shouldUpdate);
 
-    // Resetta stato allenamento attivo
     if (this.workoutTimerInterval) clearInterval(this.workoutTimerInterval);
     RestTimer.stop();
     Store.clearActiveWorkout();
@@ -850,7 +917,6 @@ const App = {
     this.closeModal("modal-workout-summary");
     this.updateActiveNavBadge();
 
-    // Ricarica grafici e passa alla schermata statistiche
     ChartsManager.populateSelectors();
     ChartsManager.renderCurrentCharts();
     this.renderHistoryList();
@@ -859,7 +925,22 @@ const App = {
     this.showToast("Ottimo lavoro! Allenamento registrato con successo.");
   },
 
-  // ================= 4. SELETTORE ESERCIZI (PICKER) =================
+  // ================= 4. SELETTORE ESERCIZI (LIBRERIA 90+ E AUTOCOMPLETAMENTO) =================
+  bindExercisePickerFilters() {
+    const filterContainer = document.getElementById("picker-muscle-filter");
+    if (!filterContainer) return;
+
+    filterContainer.querySelectorAll(".filter-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        filterContainer.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        this.pickerMuscleFilter = chip.getAttribute("data-group") || "Tutti";
+        const searchInput = document.getElementById("search-exercise-input");
+        this.renderPickerExercises(searchInput ? searchInput.value : "");
+      });
+    });
+  },
+
   openExercisePicker(context = "editor") {
     this.activeExercisePickerContext = context;
     const modal = document.getElementById("modal-exercise-picker");
@@ -868,6 +949,15 @@ const App = {
 
     if (searchInput) searchInput.value = "";
     if (customInput) customInput.value = "";
+
+    this.pickerMuscleFilter = "Tutti";
+    const filterContainer = document.getElementById("picker-muscle-filter");
+    if (filterContainer) {
+      filterContainer.querySelectorAll(".filter-chip").forEach(c => {
+        if (c.getAttribute("data-group") === "Tutti") c.classList.add("active");
+        else c.classList.remove("active");
+      });
+    }
 
     this.renderPickerExercises("");
     modal.classList.add("open");
@@ -879,27 +969,64 @@ const App = {
 
   renderPickerExercises(query = "") {
     const listEl = document.getElementById("picker-exercises-list");
+    const subtitleEl = document.getElementById("picker-subtitle");
     if (!listEl) return;
 
     const q = query.trim().toLowerCase();
-    const filtered = DEFAULT_EXERCISES.filter(ex => 
-      !q || ex.name.toLowerCase().includes(q) || ex.category.toLowerCase().includes(q)
-    );
+    const groupFilter = this.pickerMuscleFilter;
+
+    const filtered = DEFAULT_EXERCISES.filter(ex => {
+      // Filtro per gruppo muscolare
+      if (groupFilter !== "Tutti" && ex.muscleGroup !== groupFilter) {
+        return false;
+      }
+      // Filtro per ricerca testuale bilingue
+      if (!q) return true;
+      return (
+        ex.name.toLowerCase().includes(q) ||
+        (ex.nameIt && ex.nameIt.toLowerCase().includes(q)) ||
+        (ex.nameEn && ex.nameEn.toLowerCase().includes(q)) ||
+        (ex.category && ex.category.toLowerCase().includes(q)) ||
+        (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(q))
+      );
+    });
+
+    if (subtitleEl) {
+      subtitleEl.textContent = `${filtered.length} esercizi trovati ${groupFilter !== 'Tutti' ? 'in ' + groupFilter : ''}`;
+    }
 
     if (filtered.length === 0) {
-      listEl.innerHTML = `<p style="padding: 16px; color: var(--text-muted); text-align: center;">Nessun esercizio trovato. Puoi crearlo col modulo sopra.</p>`;
+      listEl.innerHTML = `
+        <div style="padding: 24px 16px; color: var(--text-muted); text-align: center;">
+          <p style="margin-bottom: 8px;">Nessun esercizio trovato per "${this.escapeHtml(query)}".</p>
+          <p style="font-size: 0.8rem;">Puoi crearlo subito usando il campo personalizzato sopra!</p>
+        </div>
+      `;
       return;
     }
 
-    listEl.innerHTML = filtered.map(ex => `
-      <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; cursor: pointer;" onclick="App.selectExerciseFromPicker('${this.escapeHtml(ex.name)}', ${ex.defaultRest})">
-        <div>
-          <div style="font-weight: 700; font-size: 0.95rem;">${this.escapeHtml(ex.name)}</div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary);">${this.escapeHtml(ex.category)} • ${ex.defaultRest}s recupero</div>
+    listEl.innerHTML = filtered.map(ex => {
+      const mGroup = ex.muscleGroup || detectMuscleGroup(ex.name);
+      return `
+        <div class="card" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 8px; cursor: pointer;" onclick="App.selectExerciseFromPicker('${this.escapeHtml(ex.name)}', ${ex.defaultRest})">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+            <button type="button" class="anatomy-thumb-btn" onclick="event.stopPropagation(); Anatomy.openModal('${this.escapeHtml(ex.name)}', '${mGroup}')" title="Visualizza anatomia">
+              ${Anatomy.getSvg(mGroup, 34, 40, ex.name)}
+            </button>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-weight: 700; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${this.escapeHtml(ex.nameIt || ex.name)}
+              </div>
+              <div class="picker-item-sub">
+                ${ex.nameEn ? `<span style="color: var(--text-secondary);">${this.escapeHtml(ex.nameEn)}</span> • ` : ''}
+                <span style="color: var(--accent-blue); font-weight: 600;">${mGroup}</span> • ${ex.defaultRest}s
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" style="margin-left: 8px;">+ Scegli</button>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm">+ Scegli</button>
-      </div>
-    `).join("");
+      `;
+    }).join("");
   },
 
   selectExerciseFromPicker(name, defaultRest = 90) {
@@ -945,7 +1072,9 @@ const App = {
       this.showToast("Inserisci il nome del nuovo esercizio.");
       return;
     }
+    const detected = detectMuscleGroup(name);
     this.selectExerciseFromPicker(name, 90);
+    this.showToast(`Esercizio personalizzato aggiunto! Gruppo muscolare associato: ${detected}`);
   },
 
   // ================= 5. STORICO SESSIONI =================
@@ -975,10 +1104,28 @@ const App = {
       const exercisesSummary = (item.exercises || []).map(ex => {
         const completedSets = (ex.sets || []).filter(s => s.completed);
         const setStrings = completedSets.map(s => `${s.weight}kg × ${s.reps}`).join(", ");
+        const mGroup = detectMuscleGroup(ex.name);
+        
+        // Calcola se questo esercizio ha avuto un PR in questa sessione
+        const prs = Store.checkExercisePRs(ex.name, ex.sets, item.id);
+        const prBadges = [];
+        if (prs.isMaxWeightPR) prBadges.push(`<span class="pr-badge pr-badge-weight" style="font-size: 0.65rem; padding: 1px 6px;">💪 PR ${prs.currentMaxWeight}kg</span>`);
+        if (prs.isMaxVolumePR) prBadges.push(`<span class="pr-badge pr-badge-volume" style="font-size: 0.65rem; padding: 1px 6px;">🏅 Record ${prs.currentMaxVolume}kg</span>`);
+
         return `
-          <div style="margin-bottom: 6px; font-size: 0.82rem;">
-            <strong>${this.escapeHtml(ex.name)}</strong>: 
-            <span style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.78rem;">${setStrings || 'Nessuna serie completata'}</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" class="anatomy-thumb-btn" onclick="Anatomy.openModal('${this.escapeHtml(ex.name)}', '${mGroup}')" title="Visualizza anatomia">
+                ${Anatomy.getSvg(mGroup, 24, 30, ex.name)}
+              </button>
+              <div>
+                <strong>${this.escapeHtml(ex.name)}</strong>
+                <div style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.76rem;">${setStrings || 'Nessuna serie completata'}</div>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+              ${prBadges.join("")}
+            </div>
           </div>
         `;
       }).join("");
@@ -1020,7 +1167,6 @@ const App = {
 
   // ================= 6. MODALI, IMPOSTAZIONI & BACKUP =================
   bindModals() {
-    // Chiusura generica modali
     document.querySelectorAll(".close-modal-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const modal = btn.closest(".modal-overlay");
@@ -1028,7 +1174,6 @@ const App = {
       });
     });
 
-    // Chiusura al click fuori dal contenuto
     document.querySelectorAll(".modal-overlay").forEach(overlay => {
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) {
@@ -1037,37 +1182,31 @@ const App = {
       });
     });
 
-    // Pulsante Nuova Scheda
     const btnCreateRoutine = document.getElementById("btn-create-routine");
     if (btnCreateRoutine) {
       btnCreateRoutine.addEventListener("click", () => this.openRoutineEditor());
     }
 
-    // Salva Scheda da Editor
     const btnSaveRoutine = document.getElementById("btn-save-routine");
     if (btnSaveRoutine) {
       btnSaveRoutine.addEventListener("click", () => this.saveRoutineFromEditor());
     }
 
-    // Aggiungi Esercizio da Editor
     const btnEditorAddEx = document.getElementById("btn-editor-add-exercise");
     if (btnEditorAddEx) {
       btnEditorAddEx.addEventListener("click", () => this.openExercisePicker("editor"));
     }
 
-    // Aggiungi Esercizio ad Allenamento Attivo
     const btnActiveAddEx = document.getElementById("btn-add-exercise-to-active");
     if (btnActiveAddEx) {
       btnActiveAddEx.addEventListener("click", () => this.openExercisePicker("active_workout"));
     }
 
-    // Aggiungi personalizzato nel picker
     const btnAddCustom = document.getElementById("btn-add-custom-exercise");
     if (btnAddCustom) {
       btnAddCustom.addEventListener("click", () => this.addCustomExercise());
     }
 
-    // Pulsanti Termina & Annulla Allenamento Attivo
     const btnFinish = document.getElementById("btn-finish-workout");
     if (btnFinish) {
       btnFinish.addEventListener("click", () => this.finishActiveWorkout());
@@ -1078,7 +1217,6 @@ const App = {
       btnCancel.addEventListener("click", () => this.cancelActiveWorkout());
     }
 
-    // Conferma salvataggio nel modal celebration
     const btnConfirmSummary = document.getElementById("btn-confirm-save-summary");
     if (btnConfirmSummary) {
       btnConfirmSummary.addEventListener("click", () => this.confirmSaveAndCloseSummary());
@@ -1121,7 +1259,6 @@ const App = {
       });
     }
 
-    // Esporta Backup JSON
     const btnExport = document.getElementById("btn-export-backup");
     if (btnExport) {
       btnExport.addEventListener("click", () => {
@@ -1140,7 +1277,6 @@ const App = {
       });
     }
 
-    // Importa Backup JSON
     const inputImport = document.getElementById("input-import-backup");
     if (inputImport) {
       inputImport.addEventListener("change", (e) => {
@@ -1165,7 +1301,6 @@ const App = {
       });
     }
 
-    // Ripristina dati di esempio iniziali
     const btnReset = document.getElementById("btn-reset-sample-data");
     if (btnReset) {
       btnReset.addEventListener("click", () => {
@@ -1204,7 +1339,6 @@ const App = {
   }
 };
 
-// Avvio dell'app al caricamento del DOM
 document.addEventListener("DOMContentLoaded", () => {
   App.init();
 });

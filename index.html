@@ -291,28 +291,45 @@
     </div>
   </div>
 
-  <!-- 2. Modal Selezione Esercizio (Libreria / Personalizzato) -->
+  <!-- 2. Modal Selezione Esercizio (Libreria con 90+ Esercizi & Autocompletamento) -->
   <div class="modal-overlay" id="modal-exercise-picker">
-    <div class="modal-content">
+    <div class="modal-content" style="max-height: 90vh;">
       <div class="modal-header">
-        <h3 class="modal-title">Seleziona Esercizio</h3>
+        <div>
+          <h3 class="modal-title">Libreria Esercizi</h3>
+          <div style="font-size: 0.75rem; color: var(--text-muted);" id="picker-subtitle">Oltre 90 esercizi con anatomia</div>
+        </div>
         <button type="button" class="icon-btn close-modal-btn">✕</button>
       </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <input type="text" id="search-exercise-input" class="form-input" placeholder="Cerca esercizio...">
+      <div class="modal-body" style="padding-top: 10px;">
+        <!-- Campo ricerca con autocompletamento -->
+        <div class="form-group" style="margin-bottom: 8px;">
+          <input type="text" id="search-exercise-input" class="form-input" placeholder="🔍 Cerca per nome (es. Panca, Squat, Bench, Curl...)" autocomplete="off">
         </div>
-        
-        <div class="form-group">
-          <label class="form-label">Oppure crea nuovo personalizzato:</label>
+
+        <!-- Filtri rapidi per gruppo muscolare (scroll orizzontale) -->
+        <div class="filter-chips-scroll" id="picker-muscle-filter">
+          <button type="button" class="filter-chip active" data-group="Tutti">Tutti</button>
+          <button type="button" class="filter-chip" data-group="Petto">Petto</button>
+          <button type="button" class="filter-chip" data-group="Schiena">Schiena</button>
+          <button type="button" class="filter-chip" data-group="Spalle">Spalle</button>
+          <button type="button" class="filter-chip" data-group="Gambe">Gambe</button>
+          <button type="button" class="filter-chip" data-group="Bicipiti">Bicipiti</button>
+          <button type="button" class="filter-chip" data-group="Tricipiti">Tricipiti</button>
+          <button type="button" class="filter-chip" data-group="Addome">Addome</button>
+        </div>
+
+        <!-- Inserimento rapido esercizio personalizzato -->
+        <div class="card" style="padding: 10px; margin-bottom: 12px; background: rgba(255,255,255,0.02);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">Oppure inserisci nome libero personalizzato:</div>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="custom-exercise-name" class="form-input" placeholder="Nome nuovo esercizio">
-            <button type="button" id="btn-add-custom-exercise" class="btn btn-primary btn-sm">Crea</button>
+            <input type="text" id="custom-exercise-name" class="form-input" style="padding: 8px 10px; font-size: 0.88rem;" placeholder="es. Hip Thrust con elastico">
+            <button type="button" id="btn-add-custom-exercise" class="btn btn-primary btn-sm" style="white-space: nowrap;">Aggiungi</button>
           </div>
         </div>
 
-        <label class="form-label">Esercizi Consigliati</label>
-        <div id="picker-exercises-list" style="max-height: 280px; overflow-y: auto;">
+        <!-- Lista Esercizi Filtrati con Miniatura Anatomica -->
+        <div id="picker-exercises-list" style="max-height: 340px; overflow-y: auto;">
           <!-- Popolato dinamicamente -->
         </div>
       </div>
@@ -431,6 +448,7 @@
 
   <!-- Moduli Applicazione -->
   <script src="js/data.js"></script>
+  <script src="js/anatomy.js"></script>
   <script src="js/store.js"></script>
   <script src="js/timer.js"></script>
   <script src="js/charts.js"></script>
