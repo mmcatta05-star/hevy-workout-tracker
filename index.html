@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Hevy Gym Tracker - Tracciamento Allenamenti Mobile</title>
+  
+  <!-- Configurazione Mobile-First & iOS PWA -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HevyTracker">
+  <meta name="theme-color" content="#09090b">
+  
+  <!-- Manifest PWA e Icone -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Stili CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header Superiore -->
+    <header class="app-header">
+      <div class="brand-container">
+        <div class="brand-logo-icon">H</div>
+        <div class="brand-title">HEVY<span>TRACK</span></div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-open-settings" class="icon-btn" title="Impostazioni e Backup" aria-label="Impostazioni">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Contenuto Principale / Viste Dinamiche -->
+    <main class="app-main">
+
+      <!-- ================= 1. SEZIONE ROUTINE ================= -->
+      <section id="view-routines" class="view-section active">
+        <div class="section-title-wrap">
+          <div>
+            <h1 class="section-title">Le Tue Schede</h1>
+            <p class="section-subtitle">Gestisci routine e avvia allenamenti</p>
+          </div>
+          <button id="btn-create-routine" class="btn btn-primary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nuova
+          </button>
+        </div>
+
+        <!-- Lista Routine Card -->
+        <div id="routines-list-container">
+          <!-- Popolato dinamicamente da app.js -->
+        </div>
+      </section>
+
+      <!-- ================= 2. SEZIONE ALLENAMENTO ATTIVO ================= -->
+      <section id="view-active" class="view-section">
+        <!-- Stato Vuoto (Nessun allenamento attivo) -->
+        <div id="active-empty-state" class="card text-center" style="padding: 40px 20px;">
+          <div style="font-size: 3rem; margin-bottom: 12px;">🏋️‍♂️</div>
+          <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Nessun allenamento attivo</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 24px;">
+            Scegli una scheda dalla sezione Routine oppure avvia una sessione libera per iniziare a tracciare.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="btn-start-quick-workout" class="btn btn-primary btn-block">
+              Inizia Sessione Libera
+            </button>
+            <button id="btn-goto-routines" class="btn btn-secondary btn-block">
+              Seleziona da Routine
+            </button>
+          </div>
+        </div>
+
+        <!-- Scheda Esecuzione Allenamento Attivo -->
+        <div id="active-workout-container" style="display: none;">
+          <!-- Barra Superiore Sticky Allenamento -->
+          <div class="active-workout-header">
+            <div class="workout-live-bar">
+              <div>
+                <h2 id="active-routine-name" style="font-size: 1.1rem; font-weight: 800;">Full Body A</h2>
+                <span class="workout-stats-pill" id="active-summary-stats">0 serie • 0 kg</span>
+              </div>
+              <div class="workout-timer-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span id="active-elapsed-time">00:00</span>
+              </div>
+            </div>
+
+            <div class="workout-header-btns">
+              <button id="btn-finish-workout" class="btn btn-success">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Termina e Salva
+              </button>
+              <button id="btn-cancel-workout" class="btn btn-danger btn-sm">
+                Annulla
+              </button>
+            </div>
+          </div>
+
+          <!-- Contenitore Esercizi Allenamento Attivo -->
+          <div id="active-exercises-list">
+            <!-- Popolato dinamicamente da app.js -->
+          </div>
+
+          <!-- Pulsante Aggiungi Esercizio Durante Sessione -->
+          <button id="btn-add-exercise-to-active" class="btn btn-secondary btn-block mt-4 mb-4">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Aggiungi Altro Esercizio
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= 3. SEZIONE STATISTICHE & GRAFICI ================= -->
+      <section id="view-stats" class="view-section">
+        <div class="section-title-wrap">
+          <div>
+            <h1 class="section-title">Progressi & Analisi</h1>
+            <p class="section-subtitle">Monitora carichi massimi, 1RM e volumi</p>
+          </div>
+        </div>
+
+        <!-- Selettore Tab Statistiche: Grafici vs Storico -->
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <button id="tab-btn-charts" class="btn btn-primary btn-sm flex-1">Grafici Interattivi</button>
+          <button id="tab-btn-history" class="btn btn-secondary btn-sm flex-1">Storico Sessioni</button>
+        </div>
+
+        <!-- Pannello 1: Grafici Interattivi -->
+        <div id="stats-panel-charts">
+          <!-- Grafico 1: Singolo Esercizio (Carico Max & 1RM Epley) -->
+          <div class="chart-container-box">
+            <div class="chart-header-row">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.05rem; font-weight: 700;">Progressione Esercizio</h3>
+                <div id="ex-stat-progression"></div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <select id="chart-exercise-select" class="form-select" style="font-size: 0.85rem;">
+                  <!-- Opzioni dinamiche -->
+                </select>
+                <select id="chart-metric-select" class="form-select" style="font-size: 0.85rem;">
+                  <option value="both">Entrambi (Max + 1RM)</option>
+                  <option value="maxWeight">Solo Carico Max</option>
+                  <option value="oneRM">Solo 1RM Stimato</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="chart-canvas-wrap">
+              <canvas id="exerciseChart"></canvas>
+            </div>
+
+            <!-- Metriche riassuntive esercizio -->
+            <div class="stat-grid-3">
+              <div class="stat-box">
+                <div class="stat-box-val" id="ex-stat-pr">-</div>
+                <div class="stat-box-lbl">PR Carico Max</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-val" id="ex-stat-1rm">-</div>
+                <div class="stat-box-lbl">Miglior 1RM</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-val" id="ex-stat-count">0</div>
+                <div class="stat-box-lbl">Sessioni</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grafico 2: Singola Routine (Volume Totale nel tempo) -->
+          <div class="chart-container-box">
+            <div class="chart-header-row">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.05rem; font-weight: 700;">Volume Totale Routine</h3>
+              </div>
+              <div>
+                <select id="chart-routine-select" class="form-select" style="font-size: 0.85rem;">
+                  <!-- Opzioni dinamiche -->
+                </select>
+              </div>
+            </div>
+
+            <div class="chart-canvas-wrap">
+              <canvas id="routineChart"></canvas>
+            </div>
+
+            <!-- Metriche riassuntive volume routine -->
+            <div class="stat-grid-3">
+              <div class="stat-box">
+                <div class="stat-box-val" id="routine-stat-maxvol">-</div>
+                <div class="stat-box-lbl">Record Volume</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-val" id="routine-stat-avgvol">-</div>
+                <div class="stat-box-lbl">Volume Medio</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-val" id="routine-stat-count">0</div>
+                <div class="stat-box-lbl">Allenamenti</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pannello 2: Storico Sessioni Complete -->
+        <div id="stats-panel-history" style="display: none;">
+          <div id="history-cards-container">
+            <!-- Popolato dinamicamente da app.js -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Barra di Navigazione Inferiore Fissa (Safe Area iOS) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="view-routines" id="nav-btn-routines">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M6 4h12M6 20h12M4 8h16M4 16h16M2 12h20"/>
+        </svg>
+        <span class="nav-label">Routine</span>
+      </button>
+
+      <button class="nav-item" data-view="view-active" id="nav-btn-active">
+        <div id="nav-active-dot" class="nav-badge-dot" style="display: none;"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <span class="nav-label">Allenamento</span>
+      </button>
+
+      <button class="nav-item" data-view="view-stats" id="nav-btn-stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span class="nav-label">Statistiche</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ================= MODALI & BOTTOM SHEETS ================= -->
+
+  <!-- 1. Modal Editor Routine (Crea / Modifica) -->
+  <div class="modal-overlay" id="modal-routine-editor">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="routine-editor-title">Nuova Routine</h3>
+        <button type="button" class="icon-btn close-modal-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="routine-editor-form">
+          <input type="hidden" id="edit-routine-id" value="">
+          
+          <div class="form-group">
+            <label class="form-label" for="edit-routine-name">Nome Scheda</label>
+            <input type="text" id="edit-routine-name" class="form-input" placeholder="es. Push Day, Upper Body..." required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-routine-desc">Descrizione / Note</label>
+            <input type="text" id="edit-routine-desc" class="form-input" placeholder="es. Focus Petto e Spalle...">
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px 0;">
+            <label class="form-label" style="margin: 0;">Esercizi nella Scheda</label>
+            <button type="button" id="btn-editor-add-exercise" class="btn btn-secondary btn-sm">
+              + Aggiungi Esercizio
+            </button>
+          </div>
+
+          <div id="editor-exercises-list">
+            <!-- Lista esercizi da modificare -->
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary close-modal-btn">Annulla</button>
+        <button type="button" id="btn-save-routine" class="btn btn-primary">Salva Scheda</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Modal Selezione Esercizio (Libreria / Personalizzato) -->
+  <div class="modal-overlay" id="modal-exercise-picker">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Seleziona Esercizio</h3>
+        <button type="button" class="icon-btn close-modal-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <input type="text" id="search-exercise-input" class="form-input" placeholder="Cerca esercizio...">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Oppure crea nuovo personalizzato:</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="custom-exercise-name" class="form-input" placeholder="Nome nuovo esercizio">
+            <button type="button" id="btn-add-custom-exercise" class="btn btn-primary btn-sm">Crea</button>
+          </div>
+        </div>
+
+        <label class="form-label">Esercizi Consigliati</label>
+        <div id="picker-exercises-list" style="max-height: 280px; overflow-y: auto;">
+          <!-- Popolato dinamicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Modal Riepilogo Fine Allenamento (Celebration) -->
+  <div class="modal-overlay" id="modal-workout-summary">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">🎉 Allenamento Concluso!</h3>
+        <button type="button" class="icon-btn close-modal-btn">✕</button>
+      </div>
+      <div class="modal-body text-center">
+        <div style="font-size: 3.5rem; margin-bottom: 8px;">🏆</div>
+        <h2 id="summary-workout-name" style="font-size: 1.3rem; font-weight: 800; margin-bottom: 4px;">Full Body A</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">Sessione registrata nello storico con successo!</p>
+
+        <div class="stat-grid-3 mb-4">
+          <div class="stat-box">
+            <div class="stat-box-val" id="summary-duration">0 min</div>
+            <div class="stat-box-lbl">Durata</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-val" id="summary-volume">0 kg</div>
+            <div class="stat-box-lbl">Volume</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-val" id="summary-sets">0</div>
+            <div class="stat-box-lbl">Serie Eseguite</div>
+          </div>
+        </div>
+
+        <div id="summary-prs-container" class="mb-4">
+          <!-- Eventuali nuovi Record Personali -->
+        </div>
+
+        <div class="card" style="text-align: left; background: var(--bg-input);">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem;">
+            <input type="checkbox" id="chk-update-routine-loads" checked style="width: 18px; height: 18px;">
+            <span>Aggiorna i carichi di riferimento della routine con quelli completati oggi</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-confirm-save-summary" class="btn btn-primary btn-block">Salva e Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Modal Impostazioni, Backup JSON e PWA Info -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Impostazioni & Dati</h3>
+        <button type="button" class="icon-btn close-modal-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--accent-blue);">Timer & Feedback</h4>
+        <div class="card mb-4">
+          <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; cursor: pointer;">
+            <span>Avviso Sonoro (Audio Synth)</span>
+            <input type="checkbox" id="setting-sound" checked style="width: 20px; height: 20px;">
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+            <span>Vibrazione Haptic Feedback</span>
+            <input type="checkbox" id="setting-vibe" checked style="width: 20px; height: 20px;">
+          </label>
+        </div>
+
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--accent-blue);">Backup & Ripristino (JSON)</h4>
+        <div class="card mb-4">
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+            I tuoi dati sono salvati automaticamente nel browser. Puoi esportarli o importarli su qualsiasi dispositivo.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button type="button" id="btn-export-backup" class="btn btn-secondary btn-block">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Esporta Backup Completo (JSON)
+            </button>
+            
+            <label class="btn btn-secondary btn-block" style="margin: 0; cursor: pointer;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importa Backup (JSON)
+              <input type="file" id="input-import-backup" accept=".json" style="display: none;">
+            </label>
+          </div>
+        </div>
+
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--accent-blue);">Installazione PWA su iPhone / iOS</h4>
+        <div class="card mb-4" style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;">
+          Per usare l'app a schermo intero come un'app nativa senza barre del browser:
+          <ol style="margin-left: 20px; margin-top: 6px;">
+            <li>Apri questa pagina in <strong>Safari</strong> su iPhone.</li>
+            <li>Tocca l'icona <strong>Condividi</strong> (quadrato con freccia in su).</li>
+            <li>Seleziona <strong>"Aggiungi alla schermata Home"</strong>.</li>
+          </ol>
+        </div>
+
+        <div style="text-align: center; margin-top: 16px;">
+          <button type="button" id="btn-reset-sample-data" class="btn btn-danger btn-sm">
+            Ripristina Dati di Esempio Iniziali
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifica Rapida -->
+  <div id="app-toast" class="toast-msg"></div>
+
+  <!-- Libreria Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Moduli Applicazione -->
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Registrazione Service Worker PWA -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(err => {
+          console.log("Service Worker non registrato (normale in contesti non-HTTPS o file://):", err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

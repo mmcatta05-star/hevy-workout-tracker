@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded Base Icon -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#27272a" stroke-width="12"/>
+  
+  <!-- Dumbbell Graphic / H monogram -->
+  <g transform="translate(64, 64) scale(0.75)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left Weight Plates -->
+    <rect x="40" y="160" width="36" height="192" rx="18" fill="url(#accentGrad)" stroke="#60a5fa" stroke-width="8"/>
+    <rect x="90" y="120" width="44" height="272" rx="22" fill="url(#accentGrad)" stroke="#60a5fa" stroke-width="8"/>
+    
+    <!-- Central Bar -->
+    <rect x="134" y="232" width="244" height="48" rx="12" fill="#fafafa" stroke="#e4e4e7" stroke-width="6"/>
+    <!-- Knurling texture -->
+    <line x1="210" y1="236" x2="210" y2="276" stroke="#a1a1aa" stroke-width="6"/>
+    <line x1="230" y1="236" x2="230" y2="276" stroke="#a1a1aa" stroke-width="6"/>
+    <line x1="250" y1="236" x2="250" y2="276" stroke="#a1a1aa" stroke-width="6"/>
+    <line x1="270" y1="236" x2="270" y2="276" stroke="#a1a1aa" stroke-width="6"/>
+    <line x1="290" y1="236" x2="290" y2="276" stroke="#a1a1aa" stroke-width="6"/>
+    <line x1="310" y1="236" x2="310" y2="276" stroke="#a1a1aa" stroke-width="6"/>
+
+    <!-- Right Weight Plates -->
+    <rect x="378" y="120" width="44" height="272" rx="22" fill="url(#accentGrad)" stroke="#60a5fa" stroke-width="8"/>
+    <rect x="436" y="160" width="36" height="192" rx="18" fill="url(#accentGrad)" stroke="#60a5fa" stroke-width="8"/>
+
+    <!-- Lightning / Progress Spark -->
+    <polygon points="256,60 220,150 265,150 240,220 300,130 255,130" fill="#f59e0b" stroke="#fbbf24" stroke-width="4"/>
+  </g>
+</svg>
